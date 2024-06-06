@@ -1,20 +1,24 @@
 package main
 
 import (
+	"log"
 	"os"
+	"s2wavy/selfbot/api/get"
+	"s2wavy/selfbot/api/post"
 
-	"github.com/bwmarrin/discordgo"
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
-	"github.com/pocketbase/pocketbase/models"
-	"github.com/pocketbase/pocketbase/models/schema"
 )
 
 var (
-	discord          *discordgo.Session
-	GetApiFunctions  = map[string]func(c echo.Context) error{}
-	PostApiFunctions = map[string]func(c echo.Context) error{}
+	// discord          *discordgo.Session
+	GetApiFunctions = map[string]func(c echo.Context) error{
+		get.SelfBotUsersFunction.Path: get.SelfBotUsersFunction.Execute,
+	}
+	PostApiFunctions = map[string]func(c echo.Context) error{
+		post.SelfBotUsersFunction.Path: post.SelfBotUsersFunction.Execute,
+	}
 )
 
 // func onReady(s *discordgo.Session, r *discordgo.Ready) {
@@ -33,76 +37,31 @@ func init() {
 
 func main() {
 	app := pocketbase.New()
+
+	post.SelfBotUsersFunction.App = app
+	get.SelfBotUsersFunction.App = app
+
 	app.OnAfterBootstrap().Add(func(e *core.BootstrapEvent) error {
-		selfbotUsers := &models.Collection{
-			Name: "SelfBotUsers",
-			Type: models.CollectionTypeBase,
-			Schema: schema.NewSchema(
-				&schema.SchemaField{
-					Name:     "Token",
-					Type:     schema.FieldTypeText,
-					Required: true,
-				},
-				&schema.SchemaField{
-					Name:     "Name",
-					Type:     schema.FieldTypeText,
-					Required: false,
-				},
-				&schema.SchemaField{
-					Name:     "Avatar",
-					Type:     schema.FieldTypeText,
-					Required: false,
-				},
-			),
-		}
-		if err := e.App.Dao().SaveCollection(selfbotUsers); err != nil {
+		db := e.App.Dao().DB()
+		if _, err := db.NewQuery("create table if not exists self_bot_users(user_id text primary key, token text not null, name text, avatar text)").Execute(); err != nil {
 			return err
 		}
-
-		messageSchedulingConfigurations := &models.Collection{
-			Name: "MessageSchedulings",
-			Type: models.CollectionTypeBase,
-			Schema: schema.NewSchema(
-				&schema.SchemaField{
-					Name:     "GuildID",
-					Type:     schema.FieldTypeText,
-					Required: true,
-				},
-				&schema.SchemaField{
-					Name:     "SelfBotUserID",
-					Type:     schema.FieldTypeText,
-					Required: true,
-				},
-				&schema.SchemaField{
-					Name:     "ChannelID",
-					Type:     schema.FieldTypeText,
-					Required: true,
-				},
-				&schema.SchemaField{
-					Name:     "MessageContent",
-					Type:     schema.FieldTypeText,
-					Required: true,
-				},
-				&schema.SchemaField{
-					Name:     "InitiateTime",
-					Type:     schema.FieldTypeDate,
-					Required: true,
-				},
-				&schema.SchemaField{
-					Name:     "IntervalInSeconds",
-					Type:     schema.FieldTypeNumber,
-					Required: true,
-				},
-			),
-		}
-
-		if err := e.App.Dao().SaveCollection(messageSchedulingConfigurations); err != nil {
+		if _, err := db.NewQuery("create table if not exists message_schedulings(guild_id text, channel_id text, selfbot_user_id text, message_content text, initiate_time text not null, interval int not null, primary key (guild_id, channel_id, selfbot_user_id))").Execute(); err != nil {
 			return err
 		}
-
 		return nil
 	})
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
+		for path, function := range GetApiFunctions {
+			e.Router.GET(path, function)
+		}
+		for path, function := range PostApiFunctions {
+			e.Router.POST(path, function)
+		}
 		return nil
 	})
+
+	if err := app.Start(); err != nil {
+		log.Fatal(err)
+	}
 }
