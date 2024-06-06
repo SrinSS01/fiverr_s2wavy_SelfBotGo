@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
-	"log"
+	"os"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/models"
@@ -12,17 +12,23 @@ import (
 )
 
 var (
-	discord *discordgo.Session
+	discord          *discordgo.Session
+	GetApiFunctions  = map[string]func(c echo.Context) error{}
+	PostApiFunctions = map[string]func(c echo.Context) error{}
 )
 
-func onReady(s *discordgo.Session, r *discordgo.Ready) {
-	log.Println(s.State.User.Username + " is ready")
-}
-func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.ID == s.State.User.ID {
-		return
-	}
-	fmt.Println(m.Content)
+// func onReady(s *discordgo.Session, r *discordgo.Ready) {
+// 	log.Println(s.State.User.Username + " is ready")
+// }
+// func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+// 	if m.Author.ID == s.State.User.ID {
+// 		return
+// 	}
+// 	fmt.Println(m.Content)
+// }
+
+func init() {
+	os.Args = append(os.Args, "serve")
 }
 
 func main() {
@@ -63,6 +69,11 @@ func main() {
 					Required: true,
 				},
 				&schema.SchemaField{
+					Name:     "SelfBotUserID",
+					Type:     schema.FieldTypeText,
+					Required: true,
+				},
+				&schema.SchemaField{
 					Name:     "ChannelID",
 					Type:     schema.FieldTypeText,
 					Required: true,
@@ -89,6 +100,9 @@ func main() {
 			return err
 		}
 
+		return nil
+	})
+	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		return nil
 	})
 }
