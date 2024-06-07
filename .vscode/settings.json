@@ -1,0 +1,10 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "name": "SelfBot",
+            "database": "./pb_data/data.db"
+        }
+    ]
+}

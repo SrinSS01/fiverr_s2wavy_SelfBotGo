@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"s2wavy/selfbot/api/delete"
 	"s2wavy/selfbot/api/get"
 	"s2wavy/selfbot/api/post"
 
@@ -18,6 +19,9 @@ var (
 	}
 	PostApiFunctions = map[string]func(c echo.Context) error{
 		post.SelfBotUsersFunction.Path: post.SelfBotUsersFunction.Execute,
+	}
+	DeleteApiFunctions = map[string]func(c echo.Context) error{
+		delete.SelfBotUsersFunction.Path: delete.SelfBotUsersFunction.Execute,
 	}
 )
 
@@ -40,6 +44,7 @@ func main() {
 
 	post.SelfBotUsersFunction.App = app
 	get.SelfBotUsersFunction.App = app
+	delete.SelfBotUsersFunction.App = app
 
 	app.OnAfterBootstrap().Add(func(e *core.BootstrapEvent) error {
 		db := e.App.Dao().DB()
@@ -57,6 +62,9 @@ func main() {
 		}
 		for path, function := range PostApiFunctions {
 			e.Router.POST(path, function)
+		}
+		for path, function := range DeleteApiFunctions {
+			e.Router.DELETE(path, function)
 		}
 		return nil
 	})
