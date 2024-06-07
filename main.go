@@ -15,7 +15,8 @@ import (
 var (
 	// discord          *discordgo.Session
 	GetApiFunctions = map[string]func(c echo.Context) error{
-		get.SelfBotUsersFunction.Path: get.SelfBotUsersFunction.Execute,
+		get.SelfBotUsersFunction.Path:   get.SelfBotUsersFunction.Execute,
+		get.ServersRequestFunction.Path: get.ServersRequestFunction.Execute,
 	}
 	PostApiFunctions = map[string]func(c echo.Context) error{
 		post.SelfBotUsersFunction.Path: post.SelfBotUsersFunction.Execute,
@@ -43,7 +44,10 @@ func main() {
 	app := pocketbase.New()
 
 	post.SelfBotUsersFunction.App = app
+
 	get.SelfBotUsersFunction.App = app
+	get.ServersRequestFunction.App = app
+
 	delete.SelfBotUsersFunction.App = app
 
 	app.OnAfterBootstrap().Add(func(e *core.BootstrapEvent) error {
