@@ -2,13 +2,14 @@ package post
 
 import (
 	"encoding/json"
-	"net/http"
-	"s2wavy/selfbot/api/types"
-
+	"github.com/bwmarrin/discordgo"
 	"github.com/go-resty/resty/v2"
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
+	"net/http"
+	"s2wavy/selfbot/api/types"
+	"s2wavy/selfbot/bots"
 )
 
 type SelfBotUsersRequest struct {
@@ -34,7 +35,7 @@ func (d *SelfBotUsersRequest) Execute(c echo.Context) error {
 	if err != nil || response.StatusCode() != http.StatusOK {
 		if err == nil {
 			var body map[string]interface{}
-			json.Unmarshal(response.Body(), &body)
+			_ = json.Unmarshal(response.Body(), &body)
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"message": body,
 			})
@@ -51,7 +52,7 @@ func (d *SelfBotUsersRequest) Execute(c echo.Context) error {
 			"error":   err,
 		})
 	}
-	if _, err := d.App.Dao().DB().NewQuery("insert into self_bot_users values ({:user_id}, {:token}, {:name}, {:avatar})").Bind(dbx.Params{
+	if _, err := d.App.Dao().DB().Insert("self_bot_users", dbx.Params{
 		"user_id": user.Id,
 		"token":   token,
 		"name":    user.Username,
@@ -62,10 +63,31 @@ func (d *SelfBotUsersRequest) Execute(c echo.Context) error {
 			"error":   err,
 		})
 	}
+
+	if err := SetBotSessionCache(token, user.Id); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"message": "Failed to create discord session",
+			"error":   err.Error(),
+		})
+	}
+
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"message": "successfully added user!",
 		"user":    user,
 	})
+}
+
+func SetBotSessionCache(token, id string) error {
+	discord, err := discordgo.New(token)
+	if err != nil {
+		return err
+	}
+	bots.Bots[id] = &bots.SelfBot{
+		Session: discord,
+		Running: false,
+	}
+	discord.AddHandler(bots.ReadyEvent)
+	return nil
 }
 
 var SelfBotUsersFunction = SelfBotUsersRequest{

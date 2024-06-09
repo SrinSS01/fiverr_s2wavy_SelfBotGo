@@ -1,8 +1,9 @@
 package delete
 
 import (
-	"encoding/json"
+	"fmt"
 	"net/http"
+	"s2wavy/selfbot/bots"
 
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/dbx"
@@ -15,17 +16,10 @@ type SelfBotUsersRequest struct {
 }
 
 func (d *SelfBotUsersRequest) Execute(c echo.Context) error {
-	jsonMap := make(map[string]interface{})
-	if err := json.NewDecoder(c.Request().Body).Decode(&jsonMap); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"message": err.Error(),
-			"error":   err,
-		})
-	}
-	userId := jsonMap["user_id"].(string)
-	result, err := d.App.Dao().DB().NewQuery("delete from self_bot_users where user_id = {:user_id}").Bind(dbx.Params{
+	userId := c.PathParam("user_id")
+	result, err := d.App.Dao().DB().Delete("self_bot_users", dbx.NewExp("user_id = {:user_id}", dbx.Params{
 		"user_id": userId,
-	}).Execute()
+	})).Execute()
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"message": err.Error(),
@@ -33,10 +27,45 @@ func (d *SelfBotUsersRequest) Execute(c echo.Context) error {
 		})
 	}
 	if rows, err := result.RowsAffected(); rows == 0 || err != nil {
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"message":       err.Error(),
+				"error":         err,
+				"rows_affected": rows,
+			})
+		}
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"message":       err.Error(),
-			"error":         err,
 			"rows_affected": rows,
+		})
+	}
+	selfBot := bots.Bots[userId]
+	if selfBot == nil {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"message": "Successfully deleted user but unable to stop the bot",
+			"user_id": userId,
+		})
+	}
+	if !selfBot.Running {
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"message": "Successfully deleted user but no running instance of bot found!",
+			"user_id": userId,
+		})
+	}
+	if user, err := selfBot.Session.User("@me"); err == nil {
+		fmt.Println("deleting user", user.Username)
+		if err := selfBot.Session.Close(); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"message": err.Error(),
+				"error":   err,
+			})
+		}
+		delete(bots.Bots, userId)
+		fmt.Println(user.Username, "Stopped and deleted.")
+	} else {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"message": "Successfully deleted user but unable to stop the bot",
+			"user_id": userId,
+			"error":   err.Error(),
 		})
 	}
 	return c.JSON(http.StatusOK, map[string]string{
@@ -46,5 +75,5 @@ func (d *SelfBotUsersRequest) Execute(c echo.Context) error {
 }
 
 var SelfBotUsersFunction = SelfBotUsersRequest{
-	Path: "/self_bot_users",
+	Path: "/self_bot_users/:user_id",
 }
