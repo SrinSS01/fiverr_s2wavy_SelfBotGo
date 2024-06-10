@@ -1,15 +1,16 @@
 package main
 
 import (
-	"github.com/labstack/echo/v5"
-	"github.com/pocketbase/pocketbase"
-	"github.com/pocketbase/pocketbase/core"
 	"log"
 	"os"
 	"s2wavy/selfbot/api/delete"
 	"s2wavy/selfbot/api/get"
 	"s2wavy/selfbot/api/post"
 	"s2wavy/selfbot/api/types"
+
+	"github.com/labstack/echo/v5"
+	"github.com/pocketbase/pocketbase"
+	"github.com/pocketbase/pocketbase/core"
 )
 
 var (
@@ -17,6 +18,7 @@ var (
 		get.SelfBotUsersFunction.Path:    get.SelfBotUsersFunction.Execute,
 		get.ServersRequestFunction.Path:  get.ServersRequestFunction.Execute,
 		get.ChannelsRequestFunction.Path: get.ChannelsRequestFunction.Execute,
+		get.ScheduleRequestFunction.Path: get.ScheduleRequestFunction.Execute,
 	}
 	PostApiFunctions = map[string]func(c echo.Context) error{
 		post.SelfBotUsersFunction.Path:    post.SelfBotUsersFunction.Execute,
@@ -44,6 +46,7 @@ func main() {
 	get.SelfBotUsersFunction.App = app
 	get.ServersRequestFunction.App = app
 	get.ChannelsRequestFunction.App = app
+	get.ScheduleRequestFunction.App = app
 
 	delete.SelfBotUsersFunction.App = app
 
@@ -53,7 +56,7 @@ func main() {
 		if err != nil {
 			return err
 		}
-		messageSchedulingResult, err := db.NewQuery("create table if not exists message_schedulings(guild_id text, channel_id text, selfbot_user_id text, message_content text, initiate_time text not null, interval int not null, expired boolean, primary key (guild_id, channel_id, selfbot_user_id))").Execute()
+		messageSchedulingResult, err := db.NewQuery("create table if not exists message_schedulings(guild_id text, channel_id text, selfbot_user_id text, message_content text, initiate_time text, interval int not null, expired boolean, primary key (initiate_time, guild_id, channel_id, selfbot_user_id))").Execute()
 		if err != nil {
 			return err
 		}
