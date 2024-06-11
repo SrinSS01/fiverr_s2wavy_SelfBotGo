@@ -54,7 +54,14 @@ func (d *ChannelsRequest) Execute(c echo.Context) error {
 	var configuredChannelIds []struct {
 		ChannelId string `db:"channel_id"`
 	}
-	err = d.App.Dao().DB().Select("channel_id").From("message_schedulings").GroupBy("channel_id").All(&configuredChannelIds)
+	err = d.App.Dao().
+	DB().
+	Select("channel_id").
+	From("message_schedulings").
+	Where(dbx.NewExp("selfbot_user_id = {:selfbot_user_id}", dbx.Params{
+		"selfbot_user_id": userId,
+	})).
+	GroupBy("channel_id").All(&configuredChannelIds)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"message": err.Error(),

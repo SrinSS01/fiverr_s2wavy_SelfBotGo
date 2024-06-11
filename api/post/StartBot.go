@@ -63,9 +63,11 @@ func (d *StartBotRequest) Execute(c echo.Context) error {
 			} else {
 				duration = initiateUnixTime.Sub(now)
 			}
-			fmt.Println("content before", scheduleCopy)
 			time.AfterFunc(duration, func() {
-				fmt.Println("content after", scheduleCopy)
+				_, err := selfBot.Session.ChannelMessageSend(scheduleCopy.ChannelID, scheduleCopy.MessageContent)
+				if err != nil {
+					fmt.Println("Unable to send message {", err.Error(), "}", scheduleCopy.MessageContent)
+				}
 				ticker := time.NewTicker(time.Duration(scheduleCopy.Interval) * time.Second)
 				selfBot.Timers = append(selfBot.Timers, ticker)
 				for range ticker.C {

@@ -22,9 +22,13 @@ func (d *ServersRequest) Execute(c echo.Context) error {
 		Token string `json:"token"`
 	}
 	// fetch user with the user_id
-	err := d.App.Dao().DB().NewQuery("select token from self_bot_users where user_id = {:user_id}").Bind(dbx.Params{
-		"user_id": userId,
-	}).One(&token)
+	err := d.App.Dao().DB().
+		Select("token").
+		From("self_bot_users").
+		Where(dbx.NewExp("user_id = {:user_id}", dbx.Params{
+			"user_id": userId,
+		})).
+		One(&token)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
@@ -55,7 +59,14 @@ func (d *ServersRequest) Execute(c echo.Context) error {
 	var configuredGuildIds []struct {
 		GuildId string `db:"guild_id"`
 	}
-	err = d.App.Dao().DB().Select("guild_id").From("message_schedulings").GroupBy("guild_id").All(&configuredGuildIds)
+	err = d.App.Dao().DB().
+		Select("guild_id").
+		From("message_schedulings").
+		Where(dbx.NewExp("selfbot_user_id = {:selfbot_user_id}", dbx.Params{
+			"selfbot_user_id": userId,
+		})).
+		GroupBy("guild_id").
+		All(&configuredGuildIds)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"message": err.Error(),

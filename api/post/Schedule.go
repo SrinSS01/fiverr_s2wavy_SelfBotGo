@@ -54,6 +54,10 @@ func (d *ScheduleRequest) Execute(c echo.Context) error {
 	bot := bots.Bots[schedule.SelfbotUserID]
 	if bot != nil && bot.Running {
 		time.AfterFunc(initiateUnixTime.Sub(now), func() {
+			_, err := bot.Session.ChannelMessageSend(schedule.ChannelID, schedule.MessageContent)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
 			ticker := time.NewTicker(time.Duration(schedule.Interval) * time.Second)
 			bot.Timers = append(bot.Timers, ticker)
 			for range ticker.C {
