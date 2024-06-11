@@ -1,10 +1,16 @@
 package post
 
 import (
-	"github.com/labstack/echo/v5"
-	"github.com/pocketbase/pocketbase"
+	"fmt"
 	"net/http"
+	"s2wavy/selfbot/api/types"
 	"s2wavy/selfbot/bots"
+	"strconv"
+	"time"
+
+	"github.com/labstack/echo/v5"
+	"github.com/pocketbase/dbx"
+	"github.com/pocketbase/pocketbase"
 )
 
 type StartBotRequest struct {
@@ -29,6 +35,42 @@ func (d *StartBotRequest) Execute(c echo.Context) error {
 		})
 	}
 	selfBot.Running = true
+	var messageSchedulings []types.MessageScheduling
+	if err := d.App.Dao().DB().
+		Select("*").
+		From("message_schedulings").
+		Where(dbx.NewExp("selfbot_user_id = {:selfbot_user_id}", dbx.Params{
+			"selfbot_user_id": userId,
+		})).All(&messageSchedulings); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"code":    http.StatusInternalServerError,
+			"message": err.Error(),
+			"error":   err,
+		})
+	}
+	go func() {
+		for _, schedule := range messageSchedulings {
+			now := time.Now()
+			scheduledTime, _ := strconv.Atoi(schedule.InitiateTime)
+			initiateUnixTime := time.UnixMilli(int64(scheduledTime))
+			var duration time.Duration
+			if schedule.Expired {
+				duration = 0
+			} else {
+				duration = initiateUnixTime.Sub(now)
+			}
+			time.AfterFunc(duration, func() {
+				ticker := time.NewTicker(time.Duration(schedule.Interval) * time.Second)
+				selfBot.Timers = append(selfBot.Timers, ticker)
+				for range ticker.C {
+					_, err := selfBot.Session.ChannelMessageSend(schedule.ChannelID, schedule.MessageContent)
+					if err != nil {
+						fmt.Println("Unable to send message {", err.Error(), "}", schedule.MessageContent)
+					}
+				}
+			})
+		}
+	}()
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"code":    http.StatusOK,
 		"message": "Bot started",

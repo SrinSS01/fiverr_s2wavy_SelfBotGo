@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"s2wavy/selfbot/bots"
+	"time"
 
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/dbx"
@@ -59,6 +60,10 @@ func (d *SelfBotUsersRequest) Execute(c echo.Context) error {
 				"error":   err,
 			})
 		}
+		for _, timer := range selfBot.Timers {
+			timer.Stop()
+		}
+		selfBot.Timers = []*time.Ticker{}
 		delete(bots.Bots, userId)
 		fmt.Println(user.Username, "Stopped and deleted.")
 	} else {

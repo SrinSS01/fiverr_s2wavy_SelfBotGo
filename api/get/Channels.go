@@ -44,12 +44,30 @@ func (d *ChannelsRequest) Execute(c echo.Context) error {
 			"error":   err,
 		})
 	}
-	var channels []types.Channel
+	var channels []*types.Channel
 	if err := json.Unmarshal(response.Body(), &channels); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"message": err.Error(),
 			"error":   err,
 		})
+	}
+	var configuredChannelIds []struct {
+		ChannelId string `db:"channel_id"`
+	}
+	err = d.App.Dao().DB().Select("channel_id").From("message_schedulings").GroupBy("channel_id").All(&configuredChannelIds)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"message": err.Error(),
+			"error":   err,
+		})
+	}
+	for _, channel := range channels {
+		for _, cChannel := range configuredChannelIds {
+			if channel.Id == cChannel.ChannelId {
+				channel.Configured = true
+				break
+			}
+		}
 	}
 	return c.JSON(http.StatusOK, channels)
 }

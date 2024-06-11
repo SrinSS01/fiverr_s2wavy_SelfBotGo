@@ -2,12 +2,15 @@ package bots
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/bwmarrin/discordgo"
 )
 
 type SelfBot struct {
 	Session *discordgo.Session
 	Running bool
+	Timers  []*time.Ticker
 }
 
 var Bots = map[string]*SelfBot{}

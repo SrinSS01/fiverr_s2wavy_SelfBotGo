@@ -2,8 +2,10 @@ package post
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"s2wavy/selfbot/api/types"
+	"s2wavy/selfbot/bots"
 	"strconv"
 	"time"
 
@@ -26,7 +28,9 @@ func (d *ScheduleRequest) Execute(c echo.Context) error {
 		})
 	}
 	scheduledTime, _ := strconv.Atoi(schedule.InitiateTime)
-	if time.Now().After(time.UnixMilli(int64(scheduledTime))) {
+	initiateUnixTime := time.UnixMilli(int64(scheduledTime))
+	now := time.Now()
+	if now.After(initiateUnixTime) {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"message": "Please enter a valid time",
 		})
@@ -44,6 +48,20 @@ func (d *ScheduleRequest) Execute(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"message": err.Error(),
 			"error":   err,
+		})
+	}
+
+	bot := bots.Bots[schedule.SelfbotUserID]
+	if bot != nil && bot.Running {
+		time.AfterFunc(initiateUnixTime.Sub(now), func() {
+			ticker := time.NewTicker(time.Duration(schedule.Interval) * time.Second)
+			bot.Timers = append(bot.Timers, ticker)
+			for range ticker.C {
+				_, err := bot.Session.ChannelMessageSend(schedule.ChannelID, schedule.MessageContent)
+				if err != nil {
+					fmt.Println(err.Error())
+				}
+			}
 		})
 	}
 

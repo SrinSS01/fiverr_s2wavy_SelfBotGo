@@ -2,10 +2,12 @@ package post
 
 import (
 	"fmt"
-	"github.com/labstack/echo/v5"
-	"github.com/pocketbase/pocketbase"
 	"net/http"
 	"s2wavy/selfbot/bots"
+	"time"
+
+	"github.com/labstack/echo/v5"
+	"github.com/pocketbase/pocketbase"
 )
 
 type StopBotRequest struct {
@@ -36,6 +38,10 @@ func (d *StopBotRequest) Execute(c echo.Context) error {
 		})
 	}
 	selfBot.Running = false
+	for _, timer := range selfBot.Timers {
+		timer.Stop()
+	}
+	selfBot.Timers = []*time.Ticker{}
 	fmt.Println("Bot stopped.", userId)
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"code":    http.StatusOK,

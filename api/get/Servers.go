@@ -2,12 +2,13 @@ package get
 
 import (
 	"encoding/json"
+	"net/http"
+	"s2wavy/selfbot/api/types"
+
 	"github.com/go-resty/resty/v2"
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
-	"net/http"
-	"s2wavy/selfbot/api/types"
 )
 
 type ServersRequest struct {
@@ -43,14 +44,33 @@ func (d *ServersRequest) Execute(c echo.Context) error {
 			"error":   err,
 		})
 	}
-	var servers []types.Guilds
-	if err := json.Unmarshal(response.Body(), &servers); err != nil {
+
+	var guilds []*types.Guilds
+	if err := json.Unmarshal(response.Body(), &guilds); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"message": err.Error(),
 			"error":   err,
 		})
 	}
-	return c.JSON(http.StatusOK, servers)
+	var configuredGuildIds []struct {
+		GuildId string `db:"guild_id"`
+	}
+	err = d.App.Dao().DB().Select("guild_id").From("message_schedulings").GroupBy("guild_id").All(&configuredGuildIds)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"message": err.Error(),
+			"error":   err,
+		})
+	}
+	for _, guild := range guilds {
+		for _, cGuild := range configuredGuildIds {
+			if guild.Id == cGuild.GuildId {
+				guild.Configured = true
+				break
+			}
+		}
+	}
+	return c.JSON(http.StatusOK, guilds)
 }
 
 var ServersRequestFunction = ServersRequest{

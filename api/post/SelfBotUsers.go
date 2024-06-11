@@ -2,14 +2,16 @@ package post
 
 import (
 	"encoding/json"
+	"net/http"
+	"s2wavy/selfbot/api/types"
+	"s2wavy/selfbot/bots"
+	"time"
+
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-resty/resty/v2"
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
-	"net/http"
-	"s2wavy/selfbot/api/types"
-	"s2wavy/selfbot/bots"
 )
 
 type SelfBotUsersRequest struct {
@@ -85,6 +87,7 @@ func SetBotSessionCache(token, id string) error {
 	bots.Bots[id] = &bots.SelfBot{
 		Session: discord,
 		Running: false,
+		Timers:  []*time.Ticker{},
 	}
 	discord.AddHandler(bots.ReadyEvent)
 	return nil

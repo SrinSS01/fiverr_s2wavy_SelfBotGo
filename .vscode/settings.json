@@ -3,7 +3,7 @@
         {
             "previewLimit": 50,
             "driver": "SQLite",
-            "name": "Selfbot",
+            "name": "SelfBot",
             "database": "./out/pb_data/data.db"
         }
     ]
