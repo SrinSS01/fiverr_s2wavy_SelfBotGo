@@ -90,6 +90,7 @@ func SetBotSessionCache(token, id string) error {
 		Timers:  []*time.Ticker{},
 	}
 	discord.AddHandler(bots.ReadyEvent)
+	discord.AddHandler(bots.MessageCreateEvent)
 	return nil
 }
 

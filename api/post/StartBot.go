@@ -48,24 +48,30 @@ func (d *StartBotRequest) Execute(c echo.Context) error {
 			"error":   err,
 		})
 	}
+
 	go func() {
+		now := time.Now()
 		for _, schedule := range messageSchedulings {
-			now := time.Now()
+			scheduleCopy := schedule
 			scheduledTime, _ := strconv.Atoi(schedule.InitiateTime)
 			initiateUnixTime := time.UnixMilli(int64(scheduledTime))
 			var duration time.Duration
+
+			schedule.Expired = now.After(initiateUnixTime)
 			if schedule.Expired {
 				duration = 0
 			} else {
 				duration = initiateUnixTime.Sub(now)
 			}
+			fmt.Println("content before", scheduleCopy)
 			time.AfterFunc(duration, func() {
-				ticker := time.NewTicker(time.Duration(schedule.Interval) * time.Second)
+				fmt.Println("content after", scheduleCopy)
+				ticker := time.NewTicker(time.Duration(scheduleCopy.Interval) * time.Second)
 				selfBot.Timers = append(selfBot.Timers, ticker)
 				for range ticker.C {
-					_, err := selfBot.Session.ChannelMessageSend(schedule.ChannelID, schedule.MessageContent)
+					_, err := selfBot.Session.ChannelMessageSend(scheduleCopy.ChannelID, scheduleCopy.MessageContent)
 					if err != nil {
-						fmt.Println("Unable to send message {", err.Error(), "}", schedule.MessageContent)
+						fmt.Println("Unable to send message {", err.Error(), "}", scheduleCopy.MessageContent)
 					}
 				}
 			})

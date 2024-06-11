@@ -1,1 +1,1 @@
-SELECT * FROM message_schedulings;
+SELECT * FROM message_schedulings WHERE selfbot_user_id = '654394128108355594';
