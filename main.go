@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
 	"s2wavy/selfbot/api/delete"
 	"s2wavy/selfbot/api/get"
 	"s2wavy/selfbot/api/post"
@@ -31,9 +30,9 @@ var (
 	}
 )
 
-func init() {
-	os.Args = append(os.Args, "serve")
-}
+// func init() {
+// 	os.Args = append(os.Args, "serve")
+// }
 
 func main() {
 	app := pocketbase.New()
