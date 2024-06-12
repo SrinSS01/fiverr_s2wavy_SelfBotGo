@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"s2wavy/selfbot/api/types"
+	"s2wavy/selfbot/bots"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/labstack/echo/v5"
@@ -18,22 +19,27 @@ type ServersRequest struct {
 
 func (d *ServersRequest) Execute(c echo.Context) error {
 	userId := c.PathParam("user_id")
-	var token struct {
-		Token string `json:"token"`
+	bot := bots.Bots[userId]
+	if bot == nil {
+		return c.JSON(http.StatusNotFound, "Bot not found")
 	}
-	// fetch user with the user_id
-	err := d.App.Dao().DB().
-		Select("token").
-		From("self_bot_users").
-		Where(dbx.NewExp("user_id = {:user_id}", dbx.Params{
-			"user_id": userId,
-		})).
-		One(&token)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-	}
+	token := bot.Session.Token
+	//var token struct {
+	//	Token string `json:"token"`
+	//}
+	//// fetch user with the user_id
+	//err := d.App.Dao().DB().
+	//	Select("token").
+	//	From("self_bot_users").
+	//	Where(dbx.NewExp("user_id = {:user_id}", dbx.Params{
+	//		"user_id": userId,
+	//	})).
+	//	One(&token)
+	//if err != nil {
+	//	return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	//}
 	request := resty.New().R()
-	request.SetHeader("Authorization", token.Token)
+	request.SetHeader("Authorization", token)
 	response, err := request.Execute("GET", "https://discord.com/api/v9/users/@me/guilds")
 	if err != nil || response.StatusCode() != http.StatusOK {
 		if err == nil {

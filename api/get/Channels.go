@@ -8,6 +8,7 @@ import (
 	"github.com/pocketbase/pocketbase"
 	"net/http"
 	"s2wavy/selfbot/api/types"
+	"s2wavy/selfbot/bots"
 )
 
 type ChannelsRequest struct {
@@ -18,18 +19,13 @@ type ChannelsRequest struct {
 func (d *ChannelsRequest) Execute(c echo.Context) error {
 	userId := c.PathParam("user_id")
 	guildId := c.PathParam("guild_id")
-	var token struct {
-		Token string `json:"token"`
+	bot := bots.Bots[userId]
+	if bot == nil {
+		return c.JSON(http.StatusNotFound, "Bot not found")
 	}
-	// fetch user with the user_id
-	err := d.App.Dao().DB().NewQuery("select token from self_bot_users where user_id = {:user_id}").Bind(dbx.Params{
-		"user_id": userId,
-	}).One(&token)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-	}
+	token := bot.Session.Token
 	request := resty.New().R()
-	request.SetHeader("Authorization", token.Token)
+	request.SetHeader("Authorization", token)
 	response, err := request.Execute("GET", "https://discord.com/api/v9/guilds/"+guildId+"/channels")
 	if err != nil || response.StatusCode() != http.StatusOK {
 		if err == nil {
@@ -55,13 +51,13 @@ func (d *ChannelsRequest) Execute(c echo.Context) error {
 		ChannelId string `db:"channel_id"`
 	}
 	err = d.App.Dao().
-	DB().
-	Select("channel_id").
-	From("message_schedulings").
-	Where(dbx.NewExp("selfbot_user_id = {:selfbot_user_id}", dbx.Params{
-		"selfbot_user_id": userId,
-	})).
-	GroupBy("channel_id").All(&configuredChannelIds)
+		DB().
+		Select("channel_id").
+		From("message_schedulings").
+		Where(dbx.NewExp("selfbot_user_id = {:selfbot_user_id}", dbx.Params{
+			"selfbot_user_id": userId,
+		})).
+		GroupBy("channel_id").All(&configuredChannelIds)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"message": err.Error(),

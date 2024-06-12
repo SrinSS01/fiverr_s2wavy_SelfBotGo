@@ -1,15 +1,14 @@
 package main
 
 import (
+	"github.com/labstack/echo/v5"
+	"github.com/pocketbase/pocketbase"
+	"github.com/pocketbase/pocketbase/core"
 	"log"
 	"s2wavy/selfbot/api/delete"
 	"s2wavy/selfbot/api/get"
 	"s2wavy/selfbot/api/post"
 	"s2wavy/selfbot/api/types"
-
-	"github.com/labstack/echo/v5"
-	"github.com/pocketbase/pocketbase"
-	"github.com/pocketbase/pocketbase/core"
 )
 
 var (
