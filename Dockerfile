@@ -1,5 +1,5 @@
 FROM golang:1.22.4
-WORKDIR /app/backend
+WORKDIR /backend
 COPY go.* ./
 RUN go mod download
 COPY . .
