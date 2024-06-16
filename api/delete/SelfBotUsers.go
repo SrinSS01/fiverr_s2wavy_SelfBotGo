@@ -41,13 +41,13 @@ func (d *SelfBotUsersRequest) Execute(c echo.Context) error {
 	}
 	selfBot := bots.Bots[userId]
 	if selfBot == nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"message": "Successfully deleted user but unable to stop the bot",
 			"user_id": userId,
 		})
 	}
 	if !selfBot.Running {
-		return c.JSON(http.StatusOK, map[string]interface{}{
+		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"message": "Successfully deleted user but no running instance of bot found!",
 			"user_id": userId,
 		})
@@ -67,7 +67,7 @@ func (d *SelfBotUsersRequest) Execute(c echo.Context) error {
 		delete(bots.Bots, userId)
 		fmt.Println(user.Username, "Stopped and deleted.")
 	} else {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"message": "Successfully deleted user but unable to stop the bot",
 			"user_id": userId,
 			"error":   err.Error(),
