@@ -8,7 +8,6 @@ import (
 	"s2wavy/selfbot/api/delete"
 	"s2wavy/selfbot/api/get"
 	"s2wavy/selfbot/api/post"
-	"s2wavy/selfbot/api/types"
 )
 
 var (
@@ -17,6 +16,7 @@ var (
 		get.ServersRequestFunction.Path:  get.ServersRequestFunction.Execute,
 		get.ChannelsRequestFunction.Path: get.ChannelsRequestFunction.Execute,
 		get.ScheduleRequestFunction.Path: get.ScheduleRequestFunction.Execute,
+		get.AvatarRequestFunction.Path:   get.AvatarRequestFunction.Execute,
 	}
 	PostApiFunctions = map[string]func(c echo.Context) error{
 		post.SelfBotUsersFunction.Path:    post.SelfBotUsersFunction.Execute,
@@ -79,15 +79,6 @@ func main() {
 					return err
 				}
 			}
-			var messageSchedulings []types.MessageScheduling
-			err := db.Select("*").From("message_schedulings").All(&messageSchedulings)
-			if err != nil {
-				return err
-			}
-			//for _, scheduling := range messageSchedulings {
-			//	atoi, _ := strconv.Atoi(scheduling.InitiateTime)
-			//	scheduleTime := time.Unix(int64(atoi), 0)
-			//}
 		}
 		return nil
 	})
