@@ -55,7 +55,7 @@ func (d *ServersRequest) Execute(c echo.Context) error {
 		})
 	}
 
-	var guilds []*types.Guilds
+	var guilds []*types.Guild
 	if err := json.Unmarshal(response.Body(), &guilds); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"message": err.Error(),

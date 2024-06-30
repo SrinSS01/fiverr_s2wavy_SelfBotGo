@@ -3,6 +3,7 @@ package post
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/bwmarrin/discordgo"
 	"net/http"
 	"s2wavy/selfbot/api/types"
 	"s2wavy/selfbot/bots"
@@ -25,6 +26,17 @@ func (d *ScheduleRequest) Execute(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"message": err.Error(),
 			"error":   err,
+		})
+	}
+	bot := bots.Bots[schedule.SelfbotUserID]
+	if bot == nil {
+		return c.JSON(http.StatusNotFound, map[string]interface{}{
+			"message": "bot not found",
+		})
+	}
+	if permissions, _ := bot.Session.UserChannelPermissions(schedule.SelfbotUserID, schedule.ChannelID); permissions&discordgo.PermissionViewChannel == 0 || permissions&discordgo.PermissionSendMessages == 0 {
+		return c.JSON(http.StatusForbidden, map[string]interface{}{
+			"message": "You do not have permission to send messages in this channel.",
 		})
 	}
 	scheduledTime, _ := strconv.Atoi(schedule.InitiateTime)
@@ -51,8 +63,7 @@ func (d *ScheduleRequest) Execute(c echo.Context) error {
 		})
 	}
 
-	bot := bots.Bots[schedule.SelfbotUserID]
-	if bot != nil && bot.Running {
+	if bot.Running {
 		time.AfterFunc(initiateUnixTime.Sub(now), func() {
 			_, err := bot.Session.ChannelMessageSend(schedule.ChannelID, schedule.MessageContent)
 			if err != nil {

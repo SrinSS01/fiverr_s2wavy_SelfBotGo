@@ -2,6 +2,7 @@ package get
 
 import (
 	"encoding/json"
+	"github.com/bwmarrin/discordgo"
 	"github.com/go-resty/resty/v2"
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/dbx"
@@ -64,7 +65,16 @@ func (d *ChannelsRequest) Execute(c echo.Context) error {
 			"error":   err,
 		})
 	}
+	var filteredChannels []*types.Channel
 	for _, channel := range channels {
+		if channel.Type != discordgo.ChannelTypeGuildText {
+			continue
+		}
+		//permissions, _ := bot.Session.UserChannelPermissions(userId, channel.Id)
+		//if permissions&discordgo.PermissionViewChannel == 0 || permissions&discordgo.PermissionSendMessages == 0 {
+		//	continue
+		//}
+		filteredChannels = append(filteredChannels, channel)
 		for _, cChannel := range configuredChannelIds {
 			if channel.Id == cChannel.ChannelId {
 				channel.Configured = true
@@ -72,7 +82,7 @@ func (d *ChannelsRequest) Execute(c echo.Context) error {
 			}
 		}
 	}
-	return c.JSON(http.StatusOK, channels)
+	return c.JSON(http.StatusOK, filteredChannels)
 }
 
 var ChannelsRequestFunction = ChannelsRequest{

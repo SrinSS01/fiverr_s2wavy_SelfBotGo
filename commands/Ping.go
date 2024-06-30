@@ -16,7 +16,7 @@ var Ping = &PingCommand{
 	},
 }
 
-func (command *PingCommand) Execute(s *discordgo.Session, m *discordgo.Message, args string) {
+func (command *PingCommand) Execute(s *discordgo.Session, m *discordgo.Message, _ string) {
 	_, err := s.ChannelMessageSend(m.ChannelID, "Pong!")
 	if err != nil {
 		fmt.Println("Error sending pong:", err.Error())
